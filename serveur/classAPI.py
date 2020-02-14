@@ -53,30 +53,26 @@ def home():
             cursor.execute(sql, val)
             conn.commit()
             
-            
             sql = """INSERT INTO cpu(idHote, frequence,frequenceMax, type) VALUES (%s, %s, %s, %s)"""
             val = (y['id'],y['cpufrequence'],y['cpufrequencemax'],y['cputype'])
             cursor.execute(sql, val)
             conn.commit()
             cpuId = cursor.lastrowid
-            
     
             sql = """INSERT INTO disque(idHote,memoireTotal,memoireLibre,memoireOccupe,buffer,cache) VALUES (%s,%s,%s,%s,%s,%s)"""
             val = (y['id'],y['total'],y['mlibre'],y['moccupe'],y['mbuffer'],y['mcached'])
             cursor.execute(sql, val)
             conn.commit()
             partitionId = cursor.lastrowid
-    
             for partition in y['metrique']:
                 sql = """INSERT INTO typepartition(idDisque,available,fileSystem,mounted,pourcentage,size,used) VALUES (%s,%s,%s,%s,%s,%s,%s)"""
                 val = (partitionId,partition['available'],partition['fileSystem'],partition['mounted'],partition['pourcentage'],partition['size'],partition['used'])
                 cursor.execute(sql, val)
                 conn.commit()
             
-            
             for service in y['service']:
                 sql = """SELECT nom FROM service WHERE nom=%s"""
-                val = (service['name'])
+                val = (service['name'],)
                 cursor.execute(sql, val)
                 rows = cursor.fetchall()
                 if not rows:
@@ -84,6 +80,7 @@ def home():
                     val = (service['name'],)
                     cursor.execute(sql, val)
                     conn.commit()
+                    print("4 insert")
                     if service['etat'].lower() == "true":
                         etat = 1
                     else:
@@ -135,13 +132,94 @@ def init():
             for i in id:
                 idStr = i
             if y['os'] == "Linux":
-                return json.dumps({'id':idStr[0], 'services':[{'name':'bluetooth.service'},{'name':'cron.service'},{'name':'alsa-store.service'}]})
+                return json.dumps({"id":idStr[0], "services":[{"name":"bluetooth"},{"name":"cron"},{"name":"alsa-store"}]})
             else:
-                return json.dumps({'id':idStr[0], 'services':[{'name':'cmd.exe'},{'name':'mpssvc'},{'name':'WSearch'}]})           
+                return json.dumps({"id":idStr[0], "services":[{"name":"cmd.exe"},{"name":"mpssvc"},{"name":"WSearch"}]})           
         except:
             loggerClient.error("Mauvaises données")  
     except:
         loggerClient.error("Aucune données envoyées")
+
+
+
+
+
+from flask import Flask, render_template,request,jsonify
+import pymysql.cursors
+def initConnection():
+# Connect to the database
+  connection = pymysql.connect(host='localhost',
+                              
+                              user='tests4',
+                              password='4NqGjgkZ',
+                              db='tests4',
+                              charset='utf8mb4',
+                              cursorclass=pymysql.cursors.DictCursor)
+  return connection
+app = Flask(__name__)
+@app.route('/',methods=['GET'])
+def getAllMachines():
+  # Read a single record
+  connection = initConnection()
+  cursor = connection.cursor()
+  sql = "SELECT hote.idHote,hote.nom from hote"
+  cursor.execute(sql)
+  data = cursor.fetchall()
+  cursor.close()
+  connection.close()
+  return render_template("index.html", taille = len(data), listeMachines=data)
+@app.route("/machine/<int:idMachine>/getCPUInfo",methods=['GET'])
+def getCPUInfo(idMachine):
+  connection = initConnection()
+  cursor = connection.cursor()
+  metrics = {}
+  sql = "SELECT * FROM cpu where cpu.idHote="+(str(idMachine))
+  cursor.execute(sql)
+  metrics['cpuUsage']=cursor.fetchall()
+  cursor.close()
+  connection.close()        
+  return jsonify(metrics)
+
+@app.route("/machine/<int:idMachine>/getMemoryInfo",methods=['GET'])
+def getMemoryInfo(idMachine):
+  connection = initConnection()
+  cursor = connection.cursor()
+  metrics = {}
+  sql = "SELECT * FROM disque where disque.idHote="+(str(idMachine)+" ORDER BY idDisque DESC LIMIT 10")
+  cursor.execute(sql)  
+  metrics['memoryUsage']=cursor.fetchall()
+  cursor.close()
+  connection.close()
+  return jsonify(metrics)  
+
+@app.route("/machine/<int:idMachine>/getDiskInfo",methods=['GET'])
+def getDiskInfo(idMachine):
+  connection = initConnection()
+  cursor = connection.cursor()
+  metrics = {}  
+  sql = "SELECT * FROM typepartition inner join disque on disque.idDisque=typepartition.idDisque where disque.idHote="+(str(idMachine)+" ORDER BY typepartition.idDisque DESC LIMIT 10")
+  cursor.execute(sql)
+  metrics['diskUsage']=cursor.fetchall()
+  cursor.close()
+  connection.close()
+  return jsonify(metrics)
+
+@app.route("/machine/<int:idMachine>/hostInfo",methods=['GET'])
+def getHostInfo(idMachine):
+  connection = initConnection()
+  cursor = connection.cursor()  
+  sql = "SELECT * FROM hote where hote.idHote="+(str(idMachine))
+  cursor.execute(sql)
+  metrics=cursor.fetchone()
+  cursor.close()
+  connection.close()
+  return jsonify(metrics)
+
+
+
+
+
+
 
 
 app.run(host = ip)

@@ -1,9 +1,10 @@
 import requests, json, psutil, platform,time,os,sys,socket
 systeme = platform.system()
-
+#print(systeme)
 
 IP=socket.gethostbyname(socket.gethostname())
-chemin = os.getcwd()+"\\init.conf"
+chemin = os.getcwd()+"/init.conf"
+#print(chemin)
 #recuperation de l'url dans le fichier init.conf
 try:
     if systeme == 'Windows' :
@@ -12,14 +13,14 @@ try:
             contenu = json.loads(contenu)
             url=contenu["url"]
     elif systeme == 'Linux' :
-        with open(chemin):
+        with open(chemin,'r') as fichier:
             contenu = fichier.read()
             contenu = json.loads(contenu)
             url=contenu["url"]        
 except:
     print("fichier init.conf n'existe pas ce referé a l'administrateur")
     
-chemin = os.getcwd()+"\\service.conf"    
+chemin = os.getcwd()+"/service.conf"    
 if systeme == 'Windows' :
     if os.path.isfile(chemin):
         with open(chemin,'r')as f:
@@ -51,22 +52,29 @@ elif systeme == 'Linux' :
         try :
             Jinit={"nom": platform.node()+"@"+IP,"os": systeme}
             reqinit=json.dumps(Jinit)
-            r = requests.post(url+"/init",reqinit)
+            print(reqinit)
+            urlinit= url+"/init"
+            print(urlinit)
+            r = requests.post(urlinit,reqinit)
+            print(r.json)
+            contenuservice = r.json()
+            print(contenuservice)
             with open(chemin,'w') as f:
-                f.write(r.json())     
+                print(f)
+                f.write(json.dumps(contenuservice))     
         except :
             print('serveur injoignable')
             sys.exit()
 else :
     print('system non gérée')
 
-    
 #recherche d'un service
+print(['name'])
 a = [p.name() for p in psutil.process_iter(attrs=['name'])]
 if 'cmd.exe' in a :
     print ("gg")
-else:
-    print(a)
+#else:
+    #print(a)
 
 try:
     while(1):
@@ -101,13 +109,15 @@ try:
             if (disk.fstype != 'squashfs'):
                 detaildisk = psutil.disk_usage(disk.mountpoint)
                 tabDisk.append({'fileSystem':disk.device,'size':detaildisk.total,'used':detaildisk.used,'available':detaildisk.free,'pourcentage':detaildisk.percent,'mounted':disk.mountpoint})
-        with open('/home/rt/test/test.txt','a')as f:
+        with open('/home/charly/Bureau/Python-master/test.txt','r')as f:
+            print(f)
             service=f.read()
+            print(service)
             service=json.loads(service)
 
         #Mémoire utilisé
         memoireused = psutil.virtual_memory().used
-
+        print(memoireused)
         #Mémoire free
         memoirefree = psutil.virtual_memory().free
 
@@ -139,5 +149,5 @@ try:
         except:
             pass
         time.sleep(10)
-except IOError:
-    print(IOError)
+except IOError as e:
+    print(e)
