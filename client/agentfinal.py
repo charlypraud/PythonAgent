@@ -52,13 +52,9 @@ elif systeme == 'Linux' :
         try :
             Jinit={"nom": platform.node()+"@"+IP,"os": systeme}
             reqinit=json.dumps(Jinit)
-            print(reqinit)
             urlinit= url+"/init"
-            print(urlinit)
             r = requests.post(urlinit,reqinit)
-            print(r.json)
             contenuservice = r.json()
-            print(contenuservice)
             with open(chemin,'w') as f:
                 print(f)
                 f.write(json.dumps(contenuservice))     
@@ -141,7 +137,6 @@ try:
         service["mcached"]=memoirecached
         service["total"]=memoireused+memoirefree+memoirebuffers+memoirecached
         service["cpufrequencemax"]=cpuMax
-        print(service)
 
         donnees = json.dumps(service)
         try:
